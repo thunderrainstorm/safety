@@ -1,12 +1,11 @@
-from ultralytics import YOLO
 import cv2
-import cvzone
 import math
+import cvzone
 import face_recognition
 import os
+from ultralytics import YOLO
 
-
-def calculate_overlap(boxA, boxB):
+def calculate_intersection_area(boxA, boxB):
     # Determine the coordinates of the intersection rectangle
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
@@ -14,17 +13,9 @@ def calculate_overlap(boxA, boxB):
     yB = min(boxA[3], boxB[3])
 
     # Compute the area of intersection rectangle
-    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    intersection_area = max(0, xB - xA + 1) * max(0, yB - yA + 1)
 
-    # Compute the area of both the prediction and ground-truth rectangles
-    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-
-    # Compute the intersection over union by taking the intersection area and dividing it by the sum of prediction + ground-truth areas - the intersection area
-    iou = interArea / float(boxAArea + boxBArea - interArea)
-
-    return iou
-
+    return intersection_area
 
 # Preload known faces
 known_faces_dir = "C:\\Users\\sambita\\PycharmProjects\\joy\\known_faces"
@@ -116,22 +107,23 @@ while True:
 
         face_box = (left, top, right, bottom)
 
-        # Default color for unknown face
-        face_color = (255, 0, 255)  # Pink
+        face_color = (255, 0, 255)  # Default color for unknown face (pink)
 
         # Check overlap with Person and Hardhat/No-Hardhat boxes
         for person_box in person_boxes:
-            for hardhat_box in hardhat_boxes:
-                iou_hardhat = calculate_overlap(person_box, hardhat_box)
-                if iou_hardhat > 0.1:
-                    iou = calculate_overlap(face_box, person_box)
-                    if iou > 0.1:
+            intersection_area_person = calculate_intersection_area(face_box, person_box)
+            if intersection_area_person > 0.1:
+                for hardhat_box in hardhat_boxes:
+                    intersection_area_hardhat_person = calculate_intersection_area(hardhat_box, person_box)
+                    intersection_area_hardhat_face = calculate_intersection_area(hardhat_box, face_box)
+                    if (intersection_area_hardhat_person > 0.1 or intersection_area_hardhat_face > 0.1):
                         if name != "Unknown":
-                            face_color = (0, 255, 255) if hardhat_box[4] == "Hardhat" else (128, 0, 128)
+                            face_color = (0, 255, 255) if hardhat_box[4] == "Hardhat" else (255, 255, 255)  # Known person wearing a hat = yellow, known person not wearing a hat = white
                         else:
-                            face_color = (0, 165, 255) if hardhat_box[4] == "Hardhat" else (255, 0, 255)
+                            face_color = (0, 0, 0) if hardhat_box[4] == "Hardhat" else (255, 0, 255)  # Unknown person wearing a hat = black, unknown person not wearing a hat = pink
                         break
 
+        # Draw rectangle and text
         cv2.rectangle(img, face_box, face_color, 2)
         cv2.putText(img, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, face_color, 2)
 
