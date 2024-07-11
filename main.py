@@ -4,6 +4,9 @@ import cvzone
 import face_recognition
 import os
 from ultralytics import YOLO
+import numpy as np
+from pyzbar.pyzbar import decode
+
 
 def calculate_intersection_area(boxA, boxB):
     # Determine the coordinates of the intersection rectangle
@@ -16,6 +19,7 @@ def calculate_intersection_area(boxA, boxB):
     intersection_area = max(0, xB - xA + 1) * max(0, yB - yA + 1)
 
     return intersection_area
+
 
 # Preload known faces
 known_faces_dir = "C:\\Users\\sambita\\PycharmProjects\\joy\\known_faces"
@@ -97,6 +101,17 @@ while True:
     face_locations = face_recognition.face_locations(img)
     face_encodings = face_recognition.face_encodings(img, face_locations)
 
+    # QR code detection and processing
+    barcode_data = None
+    for barcode in decode(img):
+        barcode_data = barcode.data.decode('utf-8')
+        print(barcode_data)
+        pts = np.array([barcode.polygon], np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        cv2.polylines(img, [pts], True, (255, 0, 255), 5)
+        pts2 = barcode.rect
+        cv2.putText(img, barcode_data, (pts2[0], pts2[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 255), 2)
+
     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
         matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
         name = "Unknown"
@@ -118,9 +133,16 @@ while True:
                     intersection_area_hardhat_face = calculate_intersection_area(hardhat_box, face_box)
                     if (intersection_area_hardhat_person > 0.1 or intersection_area_hardhat_face > 0.1):
                         if name != "Unknown":
-                            face_color = (0, 255, 255) if hardhat_box[4] == "Hardhat" else (255, 255, 255)  # Known person wearing a hat = yellow, known person not wearing a hat = white
+                            face_color = (0, 255, 255) if hardhat_box[4] == "Hardhat" else (255, 255,
+                                                                                            255)  # Known person wearing a hat = yellow, known person not wearing a hat = white
                         else:
-                            face_color = (0, 0, 0) if hardhat_box[4] == "Hardhat" else (255, 0, 255)  # Unknown person wearing a hat = black, unknown person not wearing a hat = pink
+                            face_color = (0, 0, 0) if hardhat_box[4] == "Hardhat" else (255, 0,
+                                                                                        255)  # Unknown person wearing a hat = black, unknown person not wearing a hat = pink
+
+                        # Change the face box color to brown if the recognized person is wearing a hardhat and matches the QR code
+                        if barcode_data and name == barcode_data:
+                            face_color = (42, 42, 165)  # Brown color
+
                         break
 
         # Draw rectangle and text
@@ -134,6 +156,101 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
